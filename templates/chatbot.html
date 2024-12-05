@@ -1,0 +1,112 @@
+<head>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<div class="max-w-md mx-auto bg-white dark:bg-zinc-800 shadow-md rounded-lg overflow-hidden">
+  <div class="flex flex-col h-[400px]">
+    <div class="px-4 py-3 border-b dark:border-zinc-700">
+      <div class="flex justify-between items-center">
+        <h2 class="text-lg font-semibold text-zinc-800 dark:text-white">
+          Chatbot Assistant
+        </h2>
+        <div class="bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+          Online
+        </div>
+      </div>
+    </div>
+    <div class="flex-1 p-3 overflow-y-auto flex flex-col space-y-2" id="chatDisplay">
+      <ul class="list-unstyled messages-list">
+        {% for chat in chats %}
+          {% if chat.user == request.user %}
+            <li class="message sent">
+              <div class="message-text">
+                <div class="message-sender">
+                  <b>You</b>
+                </div>
+                <div class="message-content">
+                  {{ chat.message }}
+                </div>
+              </div>
+            </li>
+            <li class="message received self-end bg-blue-100 text-blue-900 max-w-[75%] rounded-lg px-4 py-2 shadow-lg">
+              <div class="message-text">
+                <div class="message-sender font-semibold text-blue-600">
+                  <b>AI Chatbot</b>
+                </div>
+                <div class="message-content italic text-blue-800">
+                  {{ chat.response }}
+                </div>
+              </div>
+            </li>
+          {% endif %}
+        {% endfor %}
+      </ul>
+    </div>
+
+    <div class="px-3 py-2 border-t dark:border-zinc-700">
+      <form class="message-form" id="chatForm">
+        {% csrf_token %}
+        <div class="flex gap-2">
+          <input type="text" class="flex-1 p-2 border rounded-lg dark:bg-zinc-700 dark:text-white dark:border-zinc-600 text-sm message-input" id="chatInput" placeholder="Type your message..." />
+          <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg transition duration-300 ease-in-out text-sm" id="sendButton">
+            Send
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  const messagesList = document.querySelector('.messages-list');
+  const messageForm = document.getElementById('chatForm');
+  const messageInput = document.getElementById('chatInput');
+
+  messageForm.addEventListener('submit', (event) => {
+    event.preventDefault();
+
+    const message = messageInput.value.trim();
+    if (message.length === 0) {
+      return;
+    }
+
+    const messageItem = document.createElement('li');
+    messageItem.classList.add('message', 'sent');
+    messageItem.innerHTML = `
+      <div class="message-text bg-blue-500 text-white max-w-xs rounded-lg px-3 py-1.5 text-sm">
+        <div class="message-sender">
+          <b>You</b>
+        </div>
+        <div class="message-content">
+          ${message}
+        </div>
+      </div>`;
+    messagesList.appendChild(messageItem);
+
+    messageInput.value = '';  // Clear input field
+
+    fetch('', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+        'message': message
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      const response = data.response;
+      const messageItem = document.createElement('li');
+      messageItem.classList.add('message', 'received');
+      messageItem.innerHTML = `
+        <div class="message-text bg-green-500 text-white max-w-xs rounded-lg px-3  py-4.5 text-sm self-start">
+          <div class="message-sender">
+            <b>AI Chatbot</b>
+          </div>
+          <div class="message-content italic text-white">
+            ${response}
+          </div>
+        </div>`;
+      messagesList.appendChild(messageItem);
+    });
+  });
+</script>
